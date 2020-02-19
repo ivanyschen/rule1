@@ -1,1 +1,0 @@
-ROI_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/roi'
