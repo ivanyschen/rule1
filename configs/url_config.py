@@ -1,0 +1,5 @@
+ROIC_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/roi'
+EQUITY_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/total-share-holder-equity'
+EPS_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/eps-earnings-per-share-diluted'
+CASH_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/cash-on-hand'
+REVENUE_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/revenue'
