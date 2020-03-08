@@ -3,3 +3,5 @@ EQUITY_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/total
 EPS_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/eps-earnings-per-share-diluted'
 CASH_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/cash-on-hand'
 REVENUE_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/revenue'
+PE_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/pe-ratio'
+BASIC_SHARES_OUTSTANDING_URL = 'https://www.macrotrends.net/stocks/charts/{ticker}/{company}/basic-shares-outstanding'

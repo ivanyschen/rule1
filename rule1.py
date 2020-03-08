@@ -1,3 +1,5 @@
+import numpy as np
+
 from crawler import MacroTrendCrawler
 from configs.url_config import *
 
@@ -6,6 +8,7 @@ class RuleOne:
     def __init__(self, company=None, ticker=None):
         self._company = company.lower().replace(' ', '-')
         self._ticker = ticker.upper()
+        self._basic_shares_outstanding = None
 
     @property
     def company(self):
@@ -23,151 +26,135 @@ class RuleOne:
     def ticker(self, new_ticker):
         self._ticker = new_ticker.upper()
 
-    @property
     def roic(self):
         url = ROIC_URL.format(ticker=self._ticker, company=self._company)
         data = MacroTrendCrawler().get_annual_roic(url)
         return data
 
-    @property
-    def equity(self):
+    def equity(self, per_share=False):
         url = EQUITY_URL.format(ticker=self._ticker, company=self._company)
         data = MacroTrendCrawler().get_annual_equity(url)
+        data = [(date, equ) for date, equ in data if equ != 0]
+
+        if per_share:
+            return self._compute_per_share_value(data[:], self.basic_shares_outstanding[:])
         return data
 
-    @property
     def equity_growth(self):
-        pass
+        return self._compute_growth(self.equity())
 
-    @property
     def eps(self):
         url = EPS_URL.format(ticker=self._ticker, company=self._company)
         data = MacroTrendCrawler().get_annual_eps(url)
         return data
 
-    @property
     def eps_growth(self):
-        pass
+        return self._compute_growth(self.eps())
 
-    @property
-    def revenue(self):
+    def revenue(self, per_share=False):
         url = REVENUE_URL.format(ticker=self._ticker, company=self._company)
         data = MacroTrendCrawler().get_annual_revenue(url)
+
+        if per_share:
+            return self._compute_per_share_value(data[:], self.basic_shares_outstanding[:])
         return data
 
-    @property
     def revenue_growth(self):
-        pass
+        return self._compute_growth(self.revenue())
 
-    @property
-    def cash(self):
+    def cash(self, per_share=False):
         url = CASH_URL.format(ticker=self._ticker, company=self._company)
         data = MacroTrendCrawler().get_annual_cash(url)
+
+        if per_share:
+            return self._compute_per_share_value(data[:], self.basic_shares_outstanding[:])
         return data
 
-    @property
     def cash_growth(self):
-        pass
+        return self._compute_growth(self.cash())
 
-    def _compute_growth(self):
-        pass
+    def pe_ratio(self):
+        url = PE_URL.format(ticker=self._ticker, company=self._company)
+        data = MacroTrendCrawler().get_ttm_pe(url)
+        return data
 
-tool = RuleOne('chegg', 'CHGG')
-print(f'roic: {tool.roic}')
-print(f'revenue: {tool.revenue}')
-print(f'cash: {tool.cash}')
-print(f'equity: {tool.equity}')
-print(f'eps: {tool.eps}')
+    def pe_stats(self):
+        data = [pe for _, pe in self.pe_ratio()[:20]]
+        max_ = np.max(data)
+        min_ = np.min(data)
+        mean = np.mean(data)
+        median = np.median(data)
+        variance = np.var(data)
+        return max_, min_, mean, median, variance
 
+    @property
+    def basic_shares_outstanding(self):
+        if self._basic_shares_outstanding is None:
+            url = BASIC_SHARES_OUTSTANDING_URL.format(ticker=self._ticker, company=self._company)
+            data = MacroTrendCrawler().get_basic_shares_outstanding(url)
+            self._basic_shares_outstanding = data
+        return self._basic_shares_outstanding
 
-# class MacroTrendCrawler:
-#
-#     def _get_soup(self, url):
-#         r = requests.get(url)
-#         r.raise_for_status()
-#         html = r.text
-#         soup = BeautifulSoup(html, 'html.parser')
-#         return soup
-#
-#     def _get_data_rows(self, soup, table):
-#         table = soup.find_all(text=re.compile(table))[0].parent.parent.parent.parent
-#         table_rows = [ele for ele in table.find('tbody').find_all('tr')]
-#         return table_rows
-#
-#     def _process_precentage_records(self, annual_records):
-#         processed_records = []
-#         for date, percentage in annual_records:
-#             if percentage[:-1] == 'inf':
-#                 break
-#             processed_records.append((date, round(float(percentage[:-1]) * 0.01, 4)))
-#         return processed_records
-#
-#     def _process_dollar_records(self, annual_records):
-#         processed_records = []
-#         for date, money in annual_records:
-#             money = money[1:]
-#             if not money:
-#                 break
-#             money = money.replace(',', '')
-#             processed_records.append((date, round(float(money), 4)))
-#         return processed_records
-#
-#     def get_annual_roic(self, url):
-#         soup = self._get_soup(url)
-#         table_rows = self._get_data_rows(soup, ROIC_TABLE)
-#         data = []
-#         for row in table_rows:
-#             date, _, _, roic = [td.text for td in row.find_all('td')]
-#             data.append((date, roic))
-#
-#         data = self._process_precentage_records(data)
-#         return data
-#
-#     def get_annual_revenue(self, url):
-#         soup = self._get_soup(url)
-#         table_rows = self._get_data_rows(soup, REVENUE_TABLE)
-#         data = []
-#         for row in table_rows:
-#             date, revenue = [td.text for td in row.find_all('td')]
-#             data.append((date, revenue))
-#
-#         data = self._process_dollar_records(data)
-#         return data
-#
-#     def get_annual_cash(self, url):
-#         soup = self._get_soup(url)
-#         table_rows = self._get_data_rows(soup, CASH_TABLE)
-#         data = []
-#         for row in table_rows:
-#             date, cash = [td.text for td in row.find_all('td')]
-#             data.append((date, cash))
-#
-#         data = self._process_dollar_records(data)
-#         return data
-#
-#     def get_annual_equity(self, url):
-#         soup = self._get_soup(url)
-#         table_rows = self._get_data_rows(soup, EQUITY_TABLE)
-#         data = []
-#         for row in table_rows:
-#             date, cash = [td.text for td in row.find_all('td')]
-#             data.append((date, cash))
-#
-#         data = self._process_dollar_records(data)
-#         return data
-#
-#     def get_annual_eps(self, url):
-#         soup = self._get_soup(url)
-#         table_rows = self._get_data_rows(soup, EPS_TABLE)
-#         data = []
-#         for row in table_rows:
-#             date, cash = [td.text for td in row.find_all('td')]
-#             data.append((date, cash))
-#
-#         data = self._process_dollar_records(data)
-#         return data
-#
-# company_info = {'company': 'chegg',
-#                 'ticker': 'CHGG'}
-# scraper = MacroTrendCrawler()
+    def print_rule_one_report(self, per_share=False):
+        print(f'ROIC: {tool.roic()}')
+        if per_share:
+            print(f'equity (per share): {tool.equity(per_share)}')
+        else:
+            print(f'equity: {tool.equity(per_share)}')
+        print(f'equity growth: {tool.equity_growth()}')
+        print(f'eps: {tool.eps()}')
+        print(f'eqs growth: {tool.eps_growth()}')
+        if per_share:
+            print(f'revenue (per share): {tool.revenue(per_share)}')
+        else:
+            print(f'revenue: {tool.revenue(per_share)}')
+        print(f'revenue growth: {tool.revenue_growth()}')
+        if per_share:
+            print(f'cash ([er share): {tool.cash(per_share)}')
+        else:
+            print(f'cash: {tool.cash(per_share)}')
+        print(f'cash growth: {tool.cash_growth()}')
+        print(f'historical PE: {tool.pe_ratio()}')
+        print('PE stats:\n'
+              '\tmax: {}\n'
+              '\tmin: {}\n'
+              '\tmean: {}\n'
+              '\tmedian: {}\n'
+              '\tvariance: {}\n'.format(*tool.pe_stats()))
 
+    def _compute_growth(self, data):
+        growth_rates = []
+        years_to_compute = (1, 5, 10, 15)
+        _, cur_num = data[0]
+        for i, (_, num) in enumerate(data):
+            if i not in years_to_compute:
+                continue
+            try:
+                growth_rate = (cur_num / num) ** (1 / i) - 1
+                growth_rates.append((i, growth_rate))
+            except ZeroDivisionError:
+                growth_rates.append((i, 0))
+        if i not in years_to_compute:
+            try:
+                growth_rate = (cur_num / data[i][1]) ** (1 / i) - 1
+                growth_rates.append((i, growth_rate))
+            except ZeroDivisionError:
+                growth_rates.append((i, 0))
+
+        return growth_rates
+
+    def _compute_per_share_value(self, values, shares):
+        if values[0][0] < shares[0][0]:
+            shares = shares[1:]
+        elif shares[0][0] < values[0][0]:
+            values = values[1:]
+
+        per_share_value = []
+        for value, share in zip(values, shares):
+            year = value[0]
+            per_share_value.append((year, round(value[1] / share[1], 2)))
+
+        return per_share_value
+
+tool = RuleOne('ross store', 'rost')
+tool.print_rule_one_report(True)

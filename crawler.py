@@ -92,3 +92,32 @@ class MacroTrendCrawler:
 
         data = self._process_dollar_records(data)
         return data
+
+    def get_ttm_pe(self, url):
+        soup = self._get_soup(url)
+        table_rows = self._get_data_rows(soup, PE_TABLE)
+        data = []
+        for row in table_rows:
+            date, _, _, pe = [td.text for td in row.find_all('td')]
+            data.append((date, pe))
+
+        data = self._process_dollar_records(data)
+        return data
+
+    def get_basic_shares_outstanding(self, url):
+        soup = self._get_soup(url)
+        table_rows = self._get_data_rows(soup, BASIC_SHARES_OUTSTANDING_TABLE)
+        data = []
+        for row in table_rows:
+            date, bso = [td.text for td in row.find_all('td')]
+            data.append((date, bso))
+
+        data = self._process_dollar_records(data)
+        return data
+
+    def get_latest_value_from_top(self, soup, text_of_latest_line):
+        line = soup.find_all(text=re.compile(text_of_latest_line))[0].parent
+        value = line.find('strong').text
+        value = value.replace('B', '')
+        value = value.replace('$', '')
+        return float(value) * 1000
